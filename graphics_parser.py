@@ -5,12 +5,6 @@ from datetime import timedelta
 url = 'https://app.yasno.ua/api/blackout-service/public/shutdowns/regions/25/dsos/902/planned-outages'
 blackout_schedule = [[0 for _ in range(24)] for _ in range(12)]
 
-# def print_schedule():
-#     for i in range(0, len(blackout_schedule)):
-#         for j in range(0, len(blackout_schedule[i])):
-#             print(blackout_schedule[i][j], end='')
-#         print('', end='\n')
-
 def minutes_to_hhmm(minutes: int) -> str:
     hours, mins = divmod(minutes, 60)
     return f"{hours:02d}:{mins:02d}"
