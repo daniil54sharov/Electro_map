@@ -19,4 +19,13 @@ function style(feature) {
     };
 }
 
-L.geoJson(kyiv_districts, {style: style}).addTo(map)
+fetch('kyiv_districts.GeoJSON')
+  .then(resp => {
+    if (!resp.ok) throw new Error(resp.statusText);
+    return resp.json();
+  })
+  .then(data => {
+    L.geoJSON(data, { style: style} ).addTo(map);
+  })
+  .catch(err => console.error('Ошибка загрузки geojson:', err));
+// L.geoJson(kyiv_districts, {style: style}).addTo(map)
