@@ -1,34 +1,48 @@
 import requests
 import json
 from datetime import timedelta
+import time
 
-url = 'https://app.yasno.ua/api/blackout-service/public/shutdowns/regions/25/dsos/902/planned-outages'
-blackout_schedule = [[0 for _ in range(24)] for _ in range(12)]
+base_url = 'https://app.yasno.ua/api/blackout-service/public/shutdowns/addresses/v2/group'
+regionId = '?regionId=25&'
+dsoId = '&dsoId=902'
+
+with open('kyiv_districts.GeoJSON', 'r') as file:
+    kyiv_districts_json = json.load(file)
 
 def minutes_to_hhmm(minutes: int) -> str:
     hours, mins = divmod(minutes, 60)
     return f"{hours:02d}:{mins:02d}"
 
+counter = 1
+for feature in kyiv_districts_json['features']:
+    props = feature.get('properties', {})
+    yasnoStreetData = props.get('yasnoStreetData', {})
+    yasnoStreetId = yasnoStreetData.get('id')
+    yasnoHouseData = props.get('yasnoHouseData', {})
+    yasnoHouseId = yasnoHouseData.get('id')
+    streetId = '&streetId=' + str(yasnoStreetId) + '&'
+    houseId = 'houseId=' + str(yasnoHouseId) + '&'
 
-try:
-    response = requests.get(url)
-except Exception as e:
-    print('Error occurred while sending request to ' + url)
-slots_index = 0
+    if yasnoHouseData and yasnoStreetData:
+        url = base_url + regionId + streetId + houseId + dsoId
+        try:
+            response = requests.get(url)
+        except Exception as e:
+            print('Error occurred while sending request to ' + url)
 
-if response.ok:
-    data = json.loads(response.text)
-    for group in data:
-        for slots_items in data[str(group)]['today']['slots']:
-            start_time = data[str(group)]['today']['slots'][slots_index]['start']
-            end_time = data[str(group)]['today']['slots'][slots_index]['end']
-            type = data[str(group)]['today']['slots'][slots_index]['type']
-            print(group,
-            'start : ', minutes_to_hhmm(minutes=start_time), ',',
-            'end : ', minutes_to_hhmm(minutes=end_time), ',',
-            'type : ', type)
-            if slots_index < len(data[str(group)]['today']['slots']):
-                slots_index += 1
-        print('\n')
-        slots_index = 0
+        if response.ok:
+            response_json = json.loads(response.text, timeout=5)
+            if response_json:
+                    props['yasnoGroupData'] = {
+                        'group': response_json['group'],
+                        'subgroup': response_json['subgroup'],
+                        'value': str(response_json['group']) + '.' + str(response_json['subgroup'])
+                    }
+                    print(counter, response_json)
+                    counter += 1
+            time.sleep(0.2)
+
+with open('kyiv_districts.GeoJSON', 'w', encoding="utf-8") as file:
+    json.dump(kyiv_districts_json, file, ensure_ascii=False, indent=2)
 
